@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -955,6 +955,12 @@ static errno_t ui_demo(const char *display_spec)
 		return rc;
 	}
 
+	rc = ui_tab_create(demo.tabset, "Bars", &demo.tbars);
+	if (rc != EOK) {
+		printf("Error creating tab.\n");
+		return rc;
+	}
+
 	rc = ui_fixed_add(demo.fixed, ui_tab_set_ctl(demo.tabset));
 	if (rc != EOK) {
 		printf("Error adding control to layout.\n");
@@ -1427,6 +1433,41 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	ui_tab_add(demo.tlists, ui_fixed_ctl(demo.lfixed));
+
+	rc = ui_fixed_create(&demo.bars_fixed);
+	if (rc != EOK) {
+		printf("Error creating fixed layout.\n");
+		return rc;
+	}
+
+	rc = ui_progress_create(ui_res, 0, &demo.progress);
+	if (rc != EOK) {
+		printf("Error creating entry.\n");
+		return rc;
+	}
+
+	/* FIXME: Auto layout */
+	if (ui_is_textmode(ui)) {
+		rect.p0.x = 4;
+		rect.p0.y = 5;
+		rect.p1.x = 42;
+		rect.p1.y = 6;
+	} else {
+		rect.p0.x = 15;
+		rect.p0.y = 88;
+		rect.p1.x = 243;
+		rect.p1.y = 113;
+	}
+
+	ui_progress_set_rect(demo.progress, &rect);
+
+	rc = ui_fixed_add(demo.bars_fixed, ui_progress_ctl(demo.progress));
+	if (rc != EOK) {
+		printf("Error adding control to layout.\n");
+		return rc;
+	}
+
+	ui_tab_add(demo.tbars, ui_fixed_ctl(demo.bars_fixed));
 
 	ui_window_add(window, ui_fixed_ctl(demo.fixed));
 

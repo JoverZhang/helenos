@@ -26,67 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup uidemo
+/** @addtogroup libui
  * @{
  */
 /**
- * @file User interface demo
+ * @file Progress bar
  */
 
-#ifndef UIDEMO_H
-#define UIDEMO_H
+#ifndef _UI_PROGRESS_H
+#define _UI_PROGRESS_H
 
-#include <display.h>
-#include <ui/checkbox.h>
-#include <ui/entry.h>
-#include <ui/fixed.h>
-#include <ui/label.h>
-#include <ui/list.h>
-#include <ui/menu.h>
-#include <ui/menubar.h>
-#include <ui/pbutton.h>
-#include <ui/progress.h>
-#include <ui/rbutton.h>
-#include <ui/scrollbar.h>
-#include <ui/slider.h>
-#include <ui/tab.h>
-#include <ui/tabset.h>
-#include <ui/ui.h>
-#include <ui/window.h>
+#include <errno.h>
+#include <gfx/coord.h>
+#include <types/ui/progress.h>
+#include <types/ui/control.h>
+#include <types/ui/resource.h>
 
-/** User interface demo */
-typedef struct {
-	ui_t *ui;
-	ui_window_t *window;
-	ui_fixed_t *fixed;
-	ui_fixed_t *bfixed;
-	ui_fixed_t *lfixed;
-	ui_fixed_t *bars_fixed;
-	ui_menu_bar_t *mbar;
-	ui_menu_t *mfile;
-	ui_menu_t *medit;
-	ui_menu_t *mpreferences;
-	ui_menu_t *mhelp;
-	ui_tab_set_t *tabset;
-	ui_tab_t *tbasic;
-	ui_tab_t *tlists;
-	ui_tab_t *tbars;
-	ui_entry_t *entry;
-	ui_image_t *image;
-	ui_label_t *label;
-	ui_pbutton_t *pb1;
-	ui_pbutton_t *pb2;
-	ui_checkbox_t *checkbox;
-	ui_rbutton_group_t *rbgroup;
-	ui_rbutton_t *rbleft;
-	ui_rbutton_t *rbcenter;
-	ui_rbutton_t *rbright;
-	ui_slider_t *slider;
-	ui_scrollbar_t *hscrollbar;
-	ui_scrollbar_t *vscrollbar;
-	ui_list_t *list;
-	ui_progress_t *progress;
-} ui_demo_t;
+extern errno_t ui_progress_create(ui_resource_t *, unsigned, ui_progress_t **);
+extern void ui_progress_destroy(ui_progress_t *);
+extern ui_control_t *ui_progress_ctl(ui_progress_t *);
+extern void ui_progress_set_rect(ui_progress_t *, gfx_rect_t *);
+extern void ui_progress_set_value(ui_progress_t *, unsigned);
+extern errno_t ui_progress_paint(ui_progress_t *);
 
 #endif
 

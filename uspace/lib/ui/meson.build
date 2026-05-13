@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2023 Jiri Svoboda
+# Copyright (c) 2026 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@ src = files(
 	'src/paint.c',
 	'src/pbutton.c',
 	'src/popup.c',
+	'src/progress.c',
 	'src/promptdialog.c',
 	'src/rbutton.c',
 	'src/resource.c',
@@ -84,6 +85,7 @@ test_src = files(
 	'test/pbutton.c',
 	'test/popup.c',
 	'test/promptdialog.c',
+	'test/progress.c',
 	'test/rbutton.c',
 	'test/resource.c',
 	'test/scrollbar.c',
