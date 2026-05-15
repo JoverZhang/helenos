@@ -39,6 +39,7 @@
 #include <gfx/render.h>
 #include <gfx/text.h>
 #include <io/pos_event.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
 #include <ui/control.h>
@@ -152,6 +153,7 @@ static errno_t ui_progress_paint_part(ui_progress_t *progress,
 {
 	gfx_coord2_t pos;
 	gfx_text_fmt_t fmt;
+	char buf[6];
 	errno_t rc;
 
 	/* Set clipping rectangle. */
@@ -183,7 +185,9 @@ static errno_t ui_progress_paint_part(ui_progress_t *progress,
 	fmt.halign = gfx_halign_center;
 	fmt.valign = gfx_valign_center;
 
-	rc = gfx_puttext(&pos, &fmt, "42 %");
+	snprintf(buf, sizeof(buf), "%u %%", progress->value);
+
+	rc = gfx_puttext(&pos, &fmt, buf);
 	if (rc != EOK)
 		goto error;
 
@@ -206,6 +210,7 @@ errno_t ui_progress_paint(ui_progress_t *progress)
 {
 	gfx_rect_t inside;
 	gfx_rect_t part;
+	gfx_coord_t width;
 	errno_t rc;
 
 	if (progress->res->textmode) {
@@ -220,9 +225,11 @@ errno_t ui_progress_paint(ui_progress_t *progress)
 			goto error;
 	}
 
+	width = inside.p1.x - inside.p0.x;
+
 	/* Paint completed part. */
 	part.p0 = inside.p0;
-	part.p1.x = (inside.p0.x + inside.p1.x) / 2;
+	part.p1.x = inside.p0.x + width * progress->value / 100;
 	part.p1.y = inside.p1.y;
 
 	rc = ui_progress_paint_part(progress, &part, false);
