@@ -37,6 +37,7 @@
 #define UIDEMO_H
 
 #include <display.h>
+#include <fibril_synch.h>
 #include <ui/checkbox.h>
 #include <ui/entry.h>
 #include <ui/fixed.h>
@@ -86,6 +87,8 @@ typedef struct {
 	ui_scrollbar_t *vscrollbar;
 	ui_list_t *list;
 	ui_progress_t *progress;
+	unsigned progress_value;
+	fibril_timer_t *timer;
 } ui_demo_t;
 
 #endif

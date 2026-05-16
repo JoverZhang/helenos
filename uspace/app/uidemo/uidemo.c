@@ -32,6 +32,7 @@
 /** @file User interface demo
  */
 
+#include <fibril_synch.h>
 #include <gfx/bitmap.h>
 #include <gfx/coord.h>
 #include <io/pixelmap.h>
@@ -58,6 +59,11 @@
 #include <ui/ui.h>
 #include <ui/window.h>
 #include "uidemo.h"
+
+enum {
+	scrollbar_update_interval_ms = 1000,
+	ui_demo_progress_step = 17
+};
 
 static errno_t bitmap_moire(gfx_bitmap_t *, gfx_coord_t, gfx_coord_t);
 
@@ -713,6 +719,30 @@ static void msg_dialog_close(ui_msg_dialog_t *dialog, void *arg)
 
 	(void) demo;
 	ui_msg_dialog_destroy(dialog);
+}
+
+static void ui_demo_timer_fun(void *arg)
+{
+	ui_demo_t *demo = (ui_demo_t *) arg;
+
+	if (demo->progress_value < 100) {
+		demo->progress_value += ui_demo_progress_step;
+		if (demo->progress_value > 100)
+			demo->progress_value = 100;
+	} else {
+		demo->progress_value = 0;
+	}
+
+	ui_progress_set_value(demo->progress, demo->progress_value);
+
+	if (ui_tab_is_selected(demo->tbars)) {
+		ui_lock(demo->ui);
+		ui_progress_paint(demo->progress);
+		ui_unlock(demo->ui);
+	}
+
+	fibril_timer_set(demo->timer, 1000 * scrollbar_update_interval_ms,
+	    ui_demo_timer_fun, (void *)demo);
 }
 
 /** Run UI demo on display server. */
@@ -1471,6 +1501,15 @@ static errno_t ui_demo(const char *display_spec)
 
 	ui_window_add(window, ui_fixed_ctl(demo.fixed));
 
+	demo.timer = fibril_timer_create(NULL);
+	if (demo.timer == NULL) {
+		printf("Error creating timer.\n");
+		return ENOMEM;
+	}
+
+	fibril_timer_set(demo.timer, 1000 * scrollbar_update_interval_ms,
+	    ui_demo_timer_fun, (void *)&demo);
+
 	rc = ui_window_paint(window);
 	if (rc != EOK) {
 		printf("Error painting window.\n");
@@ -1478,6 +1517,9 @@ static errno_t ui_demo(const char *display_spec)
 	}
 
 	ui_run(ui);
+
+	fibril_timer_clear(demo.timer);
+	fibril_timer_destroy(demo.timer);
 
 	ui_window_destroy(window);
 	ui_destroy(ui);
