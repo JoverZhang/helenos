@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2011 Oleg Romanenko
  * All rights reserved.
@@ -572,7 +572,7 @@ errno_t exfat_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t inde
 	idxp = exfat_idx_get_by_index(service_id, index);
 	if (!idxp) {
 		*rfn = NULL;
-		return EOK;
+		return EBADF;
 	}
 	/* idxp->lock held */
 	rc = exfat_node_get_core(&nodep, idxp);

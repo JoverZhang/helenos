@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
@@ -340,14 +340,13 @@ static errno_t cdfs_node_get(fs_node_t **rfn, service_id_t service_id,
 	};
 
 	ht_link_t *link = hash_table_find(&nodes, &key);
-	if (link) {
-		cdfs_node_t *node =
-		    hash_table_get_inst(link, cdfs_node_t, nh_link);
-
-		*rfn = FS_NODE(node);
-	} else
+	if (!link) {
 		*rfn = NULL;
+		return EBADF;
+	}
 
+	cdfs_node_t *node = hash_table_get_inst(link, cdfs_node_t, nh_link);
+	*rfn = FS_NODE(node);
 	return EOK;
 }
 
@@ -394,7 +393,7 @@ static errno_t create_node(fs_node_t **rfn, cdfs_t *fs, int lflag,
 	fs_node_t *rootfn;
 	errno_t rc = cdfs_root_get(&rootfn, fs->service_id);
 
-	assert(rc == EOK);
+	assert(rc == EOK || rc == EBADF);
 
 	if (!rootfn)
 		node->index = CDFS_SOME_ROOT;

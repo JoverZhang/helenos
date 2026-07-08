@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
@@ -275,13 +276,14 @@ errno_t tmpfs_node_get(fs_node_t **rfn, service_id_t service_id, fs_index_t inde
 
 	ht_link_t *lnk = hash_table_find(&nodes, &key);
 
-	if (lnk) {
-		tmpfs_node_t *nodep;
-		nodep = hash_table_get_inst(lnk, tmpfs_node_t, nh_link);
-		*rfn = FS_NODE(nodep);
-	} else {
+	if (lnk == NULL) {
 		*rfn = NULL;
+		return EBADF;
 	}
+
+	tmpfs_node_t *nodep;
+	nodep = hash_table_get_inst(lnk, tmpfs_node_t, nh_link);
+	*rfn = FS_NODE(nodep);
 	return EOK;
 }
 
@@ -319,8 +321,8 @@ errno_t tmpfs_create_node(fs_node_t **rfn, service_id_t service_id, int lflag)
 	nodep->bp->data = nodep;  /* Link the FS and TMPFS nodes */
 
 	rc = tmpfs_root_get(&rootfn, service_id);
-	assert(rc == EOK);
-	if (!rootfn)
+	assert(rc == EOK || rc == EBADF);
+	if (rootfn == NULL)
 		nodep->index = TMPFS_SOME_ROOT;
 	else
 		nodep->index = tmpfs_next_index++;
