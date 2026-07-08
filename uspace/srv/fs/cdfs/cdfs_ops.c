@@ -1352,7 +1352,8 @@ static bool cache_remove_closed(ht_link_t *item, void *arg)
 	if (0 < *premove_cnt) {
 		cdfs_node_t *node = hash_table_get_inst(item, cdfs_node_t, nh_link);
 
-		if (!node->opened) {
+		/* Remove closed, but root node is always in memory. */
+		if (!node->opened && node->index != 0) {
 			hash_table_remove_item(&nodes, item);
 
 			--nodes_cached;
