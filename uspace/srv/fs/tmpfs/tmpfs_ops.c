@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <stdio.h>
+
 #include <assert.h>
 #include <stddef.h>
 #include <adt/hash_table.h>
@@ -360,6 +361,8 @@ errno_t tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
 	tmpfs_node_t *childp = TMPFS_NODE(cfn);
 	tmpfs_dentry_t *dentryp;
+	tmpfs_dentry_t *old_dentry;
+	char *name;
 
 	assert(parentp->type == TMPFS_DIRECTORY);
 
@@ -369,23 +372,44 @@ errno_t tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 			return EEXIST;
 	}
 
-	/* Allocate and initialize the dentry. */
-	dentryp = malloc(sizeof(tmpfs_dentry_t));
-	if (!dentryp)
-		return ENOMEM;
-	tmpfs_dentry_initialize(dentryp);
+	/* Check for invalid entries to reuse. */
+	old_dentry = NULL;
+	list_foreach(parentp->cs_list, link, tmpfs_dentry_t, dp) {
+		if (dp->name[0] == '\0') {
+			old_dentry = dp;
+			break;
+		}
+	}
+
+	/* Allocate and initialize new dentry. */
+	if (old_dentry == NULL) {
+		dentryp = malloc(sizeof(tmpfs_dentry_t));
+		if (!dentryp)
+			return ENOMEM;
+		tmpfs_dentry_initialize(dentryp);
+	} else {
+		dentryp = NULL;
+	}
 
 	/* Populate and link the new dentry. */
 	size_t size = str_size(nm);
-	dentryp->name = malloc(size + 1);
-	if (!dentryp->name) {
-		free(dentryp);
+	name = malloc(size + 1);
+	if (name == NULL) {
+		if (dentryp != NULL)
+			free(dentryp);
 		return ENOMEM;
 	}
+
+	if (old_dentry != NULL)
+		dentryp = old_dentry;
+
+	dentryp->name = name;
 	str_cpy(dentryp->name, size + 1, nm);
 	dentryp->node = childp;
 	childp->lnkcnt++;
-	list_append(&dentryp->link, &parentp->cs_list);
+
+	if (old_dentry == NULL)
+		list_append(&dentryp->link, &parentp->cs_list);
 
 	return EOK;
 }
