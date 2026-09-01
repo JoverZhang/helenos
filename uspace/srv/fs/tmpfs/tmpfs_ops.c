@@ -390,6 +390,36 @@ errno_t tmpfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	return EOK;
 }
 
+/** Clean up directory node.
+ *
+ * If a node only has invalidated (deleted) entries, remove them all.
+ * Otherwise, do nothing. (For file nodes without children, do nothing).
+ *
+ * @param node Tmpfs node
+ */
+static void tmpfs_cleanup_node(tmpfs_node_t *node)
+{
+	link_t *lnk;
+	tmpfs_dentry_t *dentryp;
+
+	/* If the directory contains valid entries, do nothing. */
+	list_foreach(node->cs_list, link, tmpfs_dentry_t, dp) {
+		if (dp->name[0] != '\0')
+			return;
+	}
+
+	/* No valid entries left. Clean up invalid entries. */
+	lnk = list_first(&node->cs_list);
+	while (lnk != NULL) {
+		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
+		list_remove(&dentryp->link);
+		free(dentryp->name);
+		free(dentryp);
+
+		lnk = list_first(&node->cs_list);
+	}
+}
+
 errno_t tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 {
 	tmpfs_node_t *parentp = TMPFS_NODE(pfn);
@@ -411,11 +441,18 @@ errno_t tmpfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	if (!childp)
 		return ENOENT;
 
+	tmpfs_cleanup_node(childp);
+
 	if ((childp->lnkcnt == 1) && !list_empty(&childp->cs_list))
 		return ENOTEMPTY;
 
-	list_remove(&dentryp->link);
-	free(dentryp);
+	/*
+	 * Invalidate directory entry. We keep the invalid entry
+	 * to provide stable directory positions for the client.
+	 * The entries are actually deleted in tmpfs_cleanup_node()
+	 * while unlinking their parent directory.
+	 */
+	dentryp->name[0] = '\0';
 	childp->lnkcnt--;
 
 	return EOK;
@@ -508,17 +545,25 @@ static errno_t tmpfs_read(service_id_t service_id, fs_index_t index, aoff64_t po
 		 * hash table.
 		 */
 		lnk = list_nth(&nodep->cs_list, pos);
+		bytes = 1;
 
-		if (lnk == NULL) {
-			async_answer_0(&call, ENOENT);
-			return ENOENT;
+		/* Find the next valid entry. */
+		while (true) {
+			if (lnk == NULL) {
+				async_answer_0(&call, ENOENT);
+				return ENOENT;
+			}
+
+			dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
+			if (dentryp->name[0] != '\0')
+				break;
+
+			++bytes;
+			lnk = list_next(lnk, &nodep->cs_list);
 		}
-
-		dentryp = list_get_instance(lnk, tmpfs_dentry_t, link);
 
 		(void) async_data_read_finalize(&call, dentryp->name,
 		    str_size(dentryp->name) + 1);
-		bytes = 1;
 	}
 
 	*rbytes = bytes;
