@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
 			vcmd = vcmd_cfglist;
 		} else if (str_cmp(cmd, "eject") == 0) {
 			vcmd = vcmd_eject;
-			if (str_cmp(argv[i], "-s") == 0) {
+			if (argv[i] != 0 && str_cmp(argv[i], "-s") == 0) {
 				physical = true;
 				++i;
 			}
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
 			}
 			volspec = argv[i++];
 		} else if (str_cmp(cmd, "insert") == 0) {
-			if (str_cmp(argv[i], "-p") == 0) {
+			if (argv[i] != NULL && str_cmp(argv[i], "-p") == 0) {
 				vcmd = vcmd_insert_by_path;
 				++i;
 			} else {
