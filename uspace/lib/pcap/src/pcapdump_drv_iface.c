@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2023 Nataliia Korop
  * All rights reserved.
  *
@@ -40,30 +41,9 @@
 #include <stdlib.h>
 #include <fibril_synch.h>
 #include <str.h>
-#include <io/log.h>
 
 #include "pcapdump_srv.h"
 #include "pcapdump_drv_iface.h"
-
-#define NAME "pcap"
-
-/** Initialize interface for dumping packets.
- * @param dumper 	Device dumping interface.
- * @return 			EOK if successful, error code otherwise.
- */
-static errno_t pcapdump_drv_dumper_init(pcap_dumper_t *dumper)
-{
-	fibril_mutex_initialize(&dumper->mutex);
-	dumper->to_dump = false;
-	dumper->writer.ops = NULL;
-
-	errno_t rc = log_init(NAME);
-	if (rc != EOK) {
-		printf("%s : Failed to initialize log.\n", NAME);
-		return 1;
-	}
-	return EOK;
-}
 
 /** Initialize driver dumping functionality.
  *  @param dumper 	Dumping interface of the driver.
@@ -72,20 +52,13 @@ static errno_t pcapdump_drv_dumper_init(pcap_dumper_t *dumper)
 errno_t pcapdump_init(pcap_dumper_t *dumper)
 {
 	port_id_t port;
-	errno_t rc;
 
-	rc = pcapdump_drv_dumper_init(dumper);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Failed initializing pcap dumper: %s", str_error(rc));
-		return rc;
-	}
+	fibril_mutex_initialize(&dumper->mutex);
+	dumper->to_dump = false;
+	dumper->writer.ops = NULL;
 
-	rc = async_create_port(INTERFACE_PCAP_CONTROL, pcapdump_conn, dumper, &port);
-	if (rc != EOK) {
-		log_msg(LOG_DEFAULT, LVL_DEBUG, "Failed creating port for pcap dumper: %s", str_error(rc));
-		return rc;
-	}
-	return EOK;
+	return async_create_port(INTERFACE_PCAP_CONTROL, pcapdump_conn, dumper,
+	    &port);
 }
 
 /** Dumping function for driver.
