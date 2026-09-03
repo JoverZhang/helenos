@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2018 Ondrej Hlavaty, Petr Manek, Jaroslav Jindrak, Jan Hrach, Michal Staruch
  * All rights reserved.
  *
@@ -518,6 +518,11 @@ static void hc_stop(xhci_hc_t *hc)
 {
 	/* Stop the HC in hardware. */
 	XHCI_REG_CLR(hc->op_regs, XHCI_OP_RS, 1);
+
+	/* Disable interrupts. */
+	xhci_interrupter_regs_t *intr0 = &hc->rt_regs->ir[0];
+	XHCI_REG_CLR(intr0, XHCI_INTR_IE, 1);
+	XHCI_REG_CLR(hc->op_regs, XHCI_OP_INTE, 1);
 
 	/*
 	 * Wait until the HC is halted - it shall take at most 16 ms.
