@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,40 +45,22 @@
 #include <stdlib.h>
 #include <offset.h>
 
-static void bd_cb_conn(ipc_call_t *icall, void *arg);
-
 errno_t bd_open(async_sess_t *sess, bd_t **rbd)
 {
-	bd_t *bd = calloc(1, sizeof(bd_t));
+	bd_t *bd;
+
+	bd = calloc(1, sizeof(bd_t));
 	if (bd == NULL)
 		return ENOMEM;
 
 	bd->sess = sess;
 
-	async_exch_t *exch = async_exchange_begin(sess);
-
-	port_id_t port;
-	errno_t rc = async_create_callback_port(exch, INTERFACE_BLOCK_CB, 0, 0,
-	    bd_cb_conn, bd, &port);
-
-	async_exchange_end(exch);
-
-	if (rc != EOK)
-		goto error;
-
 	*rbd = bd;
 	return EOK;
-
-error:
-	if (bd != NULL)
-		free(bd);
-
-	return rc;
 }
 
 void bd_close(bd_t *bd)
 {
-	/* XXX Synchronize with bd_cb_conn */
 	free(bd);
 }
 
@@ -203,28 +185,6 @@ errno_t bd_eject(bd_t *bd)
 	async_exchange_end(exch);
 
 	return rc;
-}
-
-static void bd_cb_conn(ipc_call_t *icall, void *arg)
-{
-	bd_t *bd = (bd_t *)arg;
-
-	(void)bd;
-
-	while (true) {
-		ipc_call_t call;
-		async_get_call(&call);
-
-		if (!ipc_get_imethod(&call)) {
-			async_answer_0(&call, EOK);
-			return;
-		}
-
-		switch (ipc_get_imethod(&call)) {
-		default:
-			async_answer_0(&call, ENOTSUP);
-		}
-	}
 }
 
 /** @}

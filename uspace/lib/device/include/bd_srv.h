@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,7 +52,6 @@ typedef struct {
 /** Server structure (per client session) */
 typedef struct {
 	bd_srvs_t *srvs;
-	async_sess_t *client_sess;
 	void *carg;
 } bd_srv_t;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * Copyright (c) 2013 Martin Decky
  * All rights reserved.
  *
@@ -288,7 +288,7 @@ void inetping_conn(ipc_call_t *icall, void *arg)
 	inetping_client_t client;
 	errno_t rc = inetping_client_init(&client);
 	if (rc != EOK)
-		return;
+		goto error;
 
 	while (true) {
 		ipc_call_t call;
@@ -314,6 +314,22 @@ void inetping_conn(ipc_call_t *icall, void *arg)
 	}
 
 	inetping_client_fini(&client);
+	return;
+error:
+	/* Reply to all incoming messages until caller hangs up. */
+	while (true) {
+		ipc_call_t call;
+		async_get_call(&call);
+		sysarg_t method = ipc_get_imethod(&call);
+
+		if (!method) {
+			/* The other side has hung up */
+			async_answer_0(&call, EOK);
+			break;
+		}
+
+		async_answer_0(&call, ENOTSUP);
+	}
 }
 
 /** @}

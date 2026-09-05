@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -151,10 +151,11 @@ static void ethip_client_conn(ipc_call_t *icall, void *arg)
 	service_id_t sid;
 
 	sid = (service_id_t) ipc_get_arg2(icall);
-	log_msg(LOG_DEFAULT, LVL_DEBUG, "ethip_client_conn(%u)", (unsigned)sid);
 	nic = ethip_nic_find_by_iplink_sid(sid);
 	if (nic == NULL) {
-		log_msg(LOG_DEFAULT, LVL_WARN, "Uknown service ID.");
+		async_answer_0(icall, EINVAL);
+		log_msg(LOG_DEFAULT, LVL_WARN,
+		    "ethip_client_connn: Uknown service ID.");
 		return;
 	}
 

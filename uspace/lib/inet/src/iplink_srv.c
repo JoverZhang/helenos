@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -252,14 +252,16 @@ errno_t iplink_conn(ipc_call_t *icall, void *arg)
 	async_accept_0(icall);
 
 	async_sess_t *sess = async_callback_receive(EXCHANGE_SERIALIZE);
-	if (sess == NULL)
-		return ENOMEM;
+	if (sess == NULL) {
+		rc = EIO;
+		goto error;
+	}
 
 	srv->client_sess = sess;
 
 	rc = srv->ops->open(srv);
 	if (rc != EOK)
-		return rc;
+		goto error;
 
 	while (true) {
 		ipc_call_t call;
@@ -298,11 +300,31 @@ errno_t iplink_conn(ipc_call_t *icall, void *arg)
 			iplink_addr_remove_srv(srv, &call);
 			break;
 		default:
-			async_answer_0(&call, EINVAL);
+			async_answer_0(&call, ENOTSUP);
 		}
 	}
 
 	return srv->ops->close(srv);
+error:
+	fibril_mutex_lock(&srv->lock);
+	srv->connected = false;
+	fibril_mutex_unlock(&srv->lock);
+
+	/* Receive messages until the caller hangs up. */
+	while (true) {
+		ipc_call_t call;
+		async_get_call(&call);
+
+		if (!ipc_get_imethod(&call)) {
+			/* The other side has hung up */
+			async_answer_0(&call, EOK);
+			break;
+		}
+
+		async_answer_0(&call, ENOTSUP);
+	}
+
+	return rc;
 }
 
 /* XXX Version should be part of @a sdu */

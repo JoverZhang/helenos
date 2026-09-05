@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -237,29 +237,32 @@ static void display_client_conn(ipc_call_t *icall, void *arg)
 	    ipc_get_arg4(icall));
 
 	svc_id = ipc_get_arg2(icall);
-
-	if (svc_id != 0) {
-		/* Create client object */
-		ds_display_lock(disp);
-		rc = ds_client_create(disp, &display_client_cb, &srv, &client);
-		ds_display_unlock(disp);
-		if (rc != EOK) {
-			async_answer_0(icall, ENOMEM);
-			return;
-		}
-
-		/* Set up protocol structure */
-		display_srv_initialize(&srv);
-		srv.ops = &display_srv_ops;
-		srv.arg = client;
-
-		/* Handle connection */
-		display_conn(icall, &srv);
-
-		ds_display_lock(disp);
-		ds_client_destroy(client);
-		ds_display_unlock(disp);
+	if (svc_id == 0) {
+		async_answer_0(icall, ENOENT);
+		return;
 	}
+
+	/* Create client object */
+	ds_display_lock(disp);
+	rc = ds_client_create(disp, &display_client_cb, &srv, &client);
+	ds_display_unlock(disp);
+
+	if (rc != EOK) {
+		async_answer_0(icall, ENOMEM);
+		return;
+	}
+
+	/* Set up protocol structure */
+	display_srv_initialize(&srv);
+	srv.ops = &display_srv_ops;
+	srv.arg = client;
+
+	/* Handle connection */
+	display_conn(icall, &srv);
+
+	ds_display_lock(disp);
+	ds_client_destroy(client);
+	ds_display_unlock(disp);
 }
 
 /** Handle GC connection to display server */

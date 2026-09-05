@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -138,17 +138,19 @@ errno_t chardev_conn(ipc_call_t *icall, chardev_srvs_t *srvs)
 	chardev_srv_t *srv;
 	errno_t rc;
 
+	srv = chardev_srv_create(srvs);
+	if (srv == NULL) {
+		async_answer_0(icall, ENOMEM);
+		return ENOMEM;
+	}
+
 	/* Accept the connection */
 	async_accept_0(icall);
-
-	srv = chardev_srv_create(srvs);
-	if (srv == NULL)
-		return ENOMEM;
 
 	if (srvs->ops->open != NULL) {
 		rc = srvs->ops->open(srvs, srv);
 		if (rc != EOK)
-			return rc;
+			goto error;
 	}
 
 	while (true) {
@@ -183,6 +185,22 @@ errno_t chardev_conn(ipc_call_t *icall, chardev_srvs_t *srvs)
 		rc = EOK;
 
 	free(srv);
+	return rc;
+
+error:
+	/* Receive messages until the caller hangs up. */
+	while (true) {
+		ipc_call_t call;
+		async_get_call(&call);
+
+		if (!ipc_get_imethod(&call)) {
+			/* The other side has hung up */
+			async_answer_0(&call, EOK);
+			break;
+		}
+
+		async_answer_0(&call, ENOTSUP);
+	}
 
 	return rc;
 }

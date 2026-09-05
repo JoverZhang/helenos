@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Jiri Svoboda
+ * Copyright (c) 2026 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -434,7 +434,8 @@ void con_srvs_init(con_srvs_t *srvs)
 errno_t con_conn(ipc_call_t *icall, con_srvs_t *srvs)
 {
 	con_srv_t *srv;
-	errno_t rc;
+	errno_t rc = EOK;
+	bool open = false;
 
 	/* Accept the connection */
 	async_accept_0(icall);
@@ -447,7 +448,9 @@ errno_t con_conn(ipc_call_t *icall, con_srvs_t *srvs)
 
 	rc = srvs->ops->open(srvs, srv);
 	if (rc != EOK)
-		return rc;
+		goto cleanup;
+
+	open = true;
 
 	while (true) {
 		ipc_call_t call;
@@ -461,15 +464,11 @@ errno_t con_conn(ipc_call_t *icall, con_srvs_t *srvs)
 			if (srv->srvs->aborted) {
 				if (received)
 					async_answer_0(&call, EINTR);
-				break;
+				goto cleanup;
 			}
 		}
 
-		if (!received || srv->srvs->aborted)
-			break;
-
 		sysarg_t method = ipc_get_imethod(&call);
-
 		if (!method) {
 			/* The other side has hung up */
 			async_answer_0(&call, EOK);
@@ -536,6 +535,29 @@ errno_t con_conn(ipc_call_t *icall, con_srvs_t *srvs)
 	rc = srvs->ops->close(srv);
 	free(srv);
 
+	return rc;
+
+cleanup:
+	/* Receive messages until the other side hangs up. */
+	while (true) {
+		ipc_call_t call;
+		async_get_call(&call);
+
+		sysarg_t method = ipc_get_imethod(&call);
+		if (!method) {
+			/* The other side has hung up */
+			async_answer_0(&call, EOK);
+			break;
+		}
+
+		async_answer_0(&call, ENOTSUP);
+	}
+
+	if (open) {
+		rc = srvs->ops->close(srv);
+	}
+
+	free(srv);
 	return rc;
 }
 
